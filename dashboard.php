@@ -10,6 +10,14 @@ if (!isset($_SESSION['user_id'])) {
 
 $user_id = $_SESSION['user_id'];
 
+// Update status task jika sudah lewat deadline
+taskDeadlineUpdate($conn, $user_id);
+
+// Fungsi untuk memperbarui status task yang terlambat
+function taskDeadlineUpdate($conn, $user_id) {
+    $conn->query("UPDATE tasks SET status = 2 WHERE status = 0 AND deadline < NOW() AND user_id = '$user_id'");
+}
+
 // Ambil data to-do list user ini
 $stmt = $conn->prepare("SELECT * FROM tasks WHERE user_id = ?");
 $stmt->bind_param("i", $user_id);
@@ -31,8 +39,6 @@ $tasks = $conn->query("
     WHERE user_id = '$user_id' $search_condition
     ORDER BY priority DESC, (SELECT MIN(status) FROM subtasks WHERE parent_id = tasks.id) ASC, status ASC, id ASC
 ");
-
-
 
 $subtasks = $conn->query("
     SELECT * FROM subtasks 
@@ -66,6 +72,13 @@ if (isset($_POST['update_subtask_status'])) {
         echo "<script>alert('Subtask diperbarui!');</script>";
     }
 }
+// Tambahkan pengecekan apakah subtask atau task sudah lewat deadline
+$subtasks = $conn->query("SELECT * FROM subtasks WHERE parent_id IN (SELECT id FROM tasks WHERE user_id = '$user_id') ORDER BY status ASC, parent_id ASC, id ASC");
+
+$subtasks_by_parent = []; 
+while ($subtask = $subtasks->fetch_assoc()) {
+    $subtasks_by_parent[$subtask['parent_id']][] = $subtask;
+}
 
 
 // Proses hapus task
@@ -88,6 +101,44 @@ if ($_SERVER["REQUEST_METHOD"] == "POST" && isset($_POST['delete_task'])) {
 <html lang="en">
 <head>
 <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script> <!-- SweetAlert2 -->
+<script src="https://code.jquery.com/jquery-3.6.0.min.js"></script> <!-- jQuery -->
+<script>
+$(document).ready(function() {
+    let notificationInterval = setInterval(checkTasks, 60000); // Jalankan setiap 1 menit
+
+    function checkTasks() {
+        $.ajax({
+            url: "notifikasi.php",
+            type: "GET",
+            dataType: "json",
+            success: function(response) {
+                if (response.length > 0) {
+                    let message = "";
+                    response.forEach(task => {
+                        message += `Tugas '<b>${task.name}</b>' akan jatuh tempo pada <b>${task.deadline}</b>.<br>`;
+                    });
+
+                    Swal.fire({
+                        title: "Pengingat Tenggat Waktu!",
+                        html: message,
+                        icon: "warning",
+                        confirmButtonText: "OK"
+                    });
+                } else {
+                    // Jika tidak ada tugas yang perlu diingatkan, hentikan interval
+                    clearInterval(notificationInterval);
+                }
+            }
+        });
+    }
+
+    // Jalankan sekali saat halaman dimuat
+    checkTasks();
+});
+</script>
+
+
     <script>
         $(document).ready(function() {
             $(".subtask-checkbox").change(function() {
@@ -185,6 +236,10 @@ if ($_SERVER["REQUEST_METHOD"] == "POST" && isset($_POST['delete_task'])) {
             color: gray;
         }
 
+        .overdue { 
+            color: red; font-weight: bold; 
+        }
+
         ul {
             list-style-type: none;
             padding: 0;
@@ -279,6 +334,45 @@ if ($_SERVER["REQUEST_METHOD"] == "POST" && isset($_POST['delete_task'])) {
         </form>
     </div>
 
+    <!-- Tambahkan Filter Task -->
+<form method="POST">
+    <label>
+        <input type="radio" name="filter" value="all" checked> Semua
+    </label>
+    <label>
+        <input type="radio" name="filter" value="active"> Aktif
+    </label>
+    <label>
+        <input type="radio" name="filter" value="completed"> Selesai
+    </label>
+    <label>
+        <input type="radio" name="filter" value="overdue"> Terlambat
+    </label>
+    <button type="submit" name="apply_filter">Terapkan</button>
+</form>
+
+<?php
+// Logika Filter
+$filter_condition = "";
+if (isset($_POST['apply_filter'])) {
+    $filter = $_POST['filter'];
+    if ($filter == "active") {
+        $filter_condition = "AND tasks.status = 0 AND deadline >= NOW()";
+    } elseif ($filter == "completed") {
+        $filter_condition = "AND tasks.status = 1";
+    } elseif ($filter == "overdue") {
+        $filter_condition = "AND tasks.status = 0 AND deadline < NOW()";
+    }
+}
+
+// Perbarui Query Task dengan Filter
+$tasks = $conn->query("
+    SELECT * FROM tasks 
+    WHERE user_id = '$user_id' $filter_condition
+    ORDER BY priority DESC, (SELECT MIN(status) FROM subtasks WHERE parent_id = tasks.id) ASC, status ASC, id ASC
+");
+?>
+
     <table border="1">
         <thead>
             <tr>
@@ -289,40 +383,53 @@ if ($_SERVER["REQUEST_METHOD"] == "POST" && isset($_POST['delete_task'])) {
             </tr>
         </thead>
         <tbody>
-            <?php if ($tasks->num_rows > 0): ?>
-                <?php while ($task = $tasks->fetch_assoc()): ?>
-                    <tr>
-                        <td class="<?= $task['status'] == '1' ? 'completed' : '' ?>">
-                            <?= htmlspecialchars($task['name']) ?>
-                        </td>
-                        <td><?= $task['status'] == '1' ? 'Selesai' : 'Belum Selesai' ?></td>
+        <?php if ($tasks->num_rows > 0): ?>
+        <?php while ($task = $tasks->fetch_assoc()): ?>
+            <?php $isOverdue = ($task['status'] == '0' && strtotime($task['deadline']) < time()); ?>
+            <tr>
+            <td class="<?= $task['status'] == 1 ? 'completed' : ($task['status'] == 2 ? 'overdue' : '') ?>">
+                    <?= htmlspecialchars($task['name']) ?>
+                </td>
+                <td>
+                    <?= $task['status'] == 1 ? 'Selesai' : ($task['status'] == 2 ? 'Terlambat' : 'Belum Selesai') ?>
+                </td>
+                <td>
+                    <?php if (isset($subtasks_by_parent[$task['id']])): ?>
+                        <ul>
+                            <?php foreach ($subtasks_by_parent[$task['id']] as $subtask): ?>
+                                <li>
+                                    <form method="POST" style="display: inline;" onsubmit="setTimeout(() => location.reload(), 100);">
+                                        <input type="hidden" name="subtask_id" value="<?= $subtask['id'] ?>">
+                                        <input type="hidden" name="parent_id" value="<?= $task['id'] ?>">
+
+                                        <input type="checkbox" class="subtask-checkbox" 
+                                            data-id="<?= $subtask['id'] ?>" 
+                                            data-parent="<?= $task['id'] ?>"
+                                            <?= $subtask['status'] == '1' ? 'checked disabled' : '' ?> <?= $isOverdue ? 'disabled' : '' ?>
+                                    </form>
+
+                                    <span class="<?= $subtask['status'] == '1' ? 'completed' : '' ?>">
+                                        <?= htmlspecialchars($subtask['name']) ?>
+                                    </span>
+                                </li>
+                            <?php endforeach; ?>
+                        </ul>
+                    <?php else: ?>
+                        <em>Tidak ada subtask</em>
+                    <?php endif; ?>
+                </td>
+
                         <td>
-                            <?php if (isset($subtasks_by_parent[$task['id']])): ?>
-                                <ul>
-                                    <?php foreach ($subtasks_by_parent[$task['id']] as $subtask): ?>
-                                        <li>
-                                        <form method="POST" style="display: inline;" onsubmit="setTimeout(() => location.reload(), 100);">
-                                            <input type="hidden" name="subtask_id" value="<?= $subtask['id'] ?>">
-                                            <input type="hidden" name="parent_id" value="<?= $task['id'] ?>">
-                                            <input type="checkbox" class="subtask-checkbox" 
-                                                data-id="<?= $subtask['id'] ?>" 
-                                                data-parent="<?= $task['id'] ?>"
-                                                <?= $subtask['status'] == '1' ? 'checked disabled' : '' ?>>
-                                        </form>
-                                            <span class="<?= $subtask['status'] == '1' ? 'completed' : '' ?>">
-                                                <?= htmlspecialchars($subtask['name']) ?>
-                                            </span>
-                                        </li>
-                                    <?php endforeach; ?>
-                                </ul>
-                            <?php else: ?>
-                                <em>Tidak ada subtask</em>
+                        <?php 
+                            $isOverdue = ($task['status'] == '0' && strtotime($task['deadline']) < time()); 
+                            $isCompleted = ($task['status'] == '1'); 
+                            ?>
+
+                            <?php if (!$isOverdue && !$isCompleted): // Jika belum terlambat dan belum selesai, tampilkan tombol Edit ?>
+                                <a href="update.php?id=<?= $task['id'] ?>">
+                                    <button type="button" class="edit-btn">Edit</button>
+                                </a>
                             <?php endif; ?>
-                        </td>
-                        <td>
-                            <a href="update.php?id=<?= $task['id'] ?>">
-                                <button type="button" class="edit-btn">Edit</button>
-                            </a>
                             <form method="POST" class="inline">
                                 <input type="hidden" name="task_id" value="<?= $task['id'] ?>">
                                 <button type="submit" name="delete_task" class="delete-btn">Hapus</button>
@@ -338,4 +445,4 @@ if ($_SERVER["REQUEST_METHOD"] == "POST" && isset($_POST['delete_task'])) {
         </tbody>
     </table>
 </body>
-</html>
+</html> 

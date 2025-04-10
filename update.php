@@ -23,6 +23,16 @@ if (isset($_POST['update_task'])) {
     $new_task_name = $_POST['new_task_name'];
     $conn->query("UPDATE tasks SET name='$new_task_name' WHERE id='$task_id'");
     $update_success = true;
+    
+}
+
+// Proses update tenggat waktu
+if (isset($_POST['update_deadline'])) {
+    $new_deadline = $_POST['new_deadline'];
+    if (strtotime($new_deadline) > strtotime($task['deadline'])) { // Hanya bisa menambah waktu
+        $conn->query("UPDATE tasks SET deadline='$new_deadline' WHERE id='$task_id'");
+        $update_success = true;
+    }
 }
 
 // Proses update subtask
@@ -75,7 +85,7 @@ if (isset($_POST['update_subtask'])) {
             margin-bottom: 15px;
         }
 
-        input[type="text"] {
+        input[type="text"], input[type="date"] {
             width: 80%;
             padding: 10px;
             margin: 10px 0;
@@ -141,6 +151,14 @@ if (isset($_POST['update_subtask'])) {
             <input type="text" name="new_task_name" value="<?= htmlspecialchars($task['name']) ?>" required>
             <button type="submit" name="update_task">Update Task</button>
         </form>
+
+        <!-- Form Update Tenggat Waktu -->
+<h2>Perpanjang Tenggat Waktu</h2>
+<form method="POST">
+    <input type="datetime-local" value="<?= htmlspecialchars($task['deadline']) ?>" readonly>
+    <input type="date" name="new_deadline" value="<?= $task['deadline']?>" required min="<?= date('Y-m-d', strtotime('+1 day'))?>">
+    <button type="submit" name="update_deadline">Perpanjang Deadline</button>
+</form>
 
         <h2>Update Subtasks</h2>
 

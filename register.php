@@ -14,8 +14,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     // Validasi form
     if (empty($username) || empty($email) || empty($password) || empty($confirm_password)) {
         $error = 'Semua field harus diisi.';
+    } elseif (!preg_match('/^[a-zA-Z0-9]+$/', $username)) {
+        $error = 'Username hanya boleh berisi huruf dan angka.';
     } elseif (!filter_var($email, FILTER_VALIDATE_EMAIL)) {
         $error = 'Format email tidak valid.';
+    } elseif (!preg_match('/^[a-zA-Z0-9]{8,}$/', $password)) { // Minimal 8 karakter
+        $error = 'Password harus terdiri dari minimal 8 karakter huruf dan angka.';
     } elseif ($password !== $confirm_password) {
         $error = 'Password dan konfirmasi password tidak sama.';
     } else {
@@ -59,7 +63,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             justify-content: center;
             align-items: center;
             min-height: 100vh;
-            background: linear-gradient(to bottom,rgb(29, 32, 218), #2575fc);
+            background: linear-gradient(to bottom, rgb(29, 32, 218), #2575fc);
         }
         .container {
             max-width: 400px;
@@ -89,7 +93,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             font-size: 14px;
             border: none;
             border-radius: 5px;
-            background: linear-gradient(to bottom,rgb(29, 32, 218), #2575fc);
+            background: linear-gradient(to bottom, rgb(29, 32, 218), #2575fc);
             color: #fff;
             cursor: pointer;
         }
@@ -121,10 +125,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             <p class="message success"><?php echo htmlspecialchars($success); ?></p>
         <?php endif; ?>
         <form action="" method="POST">
-            <input type="text" name="username" placeholder="Username" value="<?php echo htmlspecialchars($username ?? ''); ?>" required>
+            <input type="text" name="username" placeholder="Username" value="<?php echo htmlspecialchars($username ?? ''); ?>" required pattern="[a-zA-Z0-9]+" title="Username hanya boleh berisi huruf dan angka.">
             <input type="email" name="email" placeholder="Email address" value="<?php echo htmlspecialchars($email ?? ''); ?>" required>
-            <input type="password" name="password" placeholder="Password" required>
-            <input type="password" name="confirm_password" placeholder="Confirm Password" required>
+            <input type="password" name="password" placeholder="Password" required minlength="8" pattern="[a-zA-Z0-9]+" title="Password harus terdiri dari minimal 8 karakter huruf dan angka.">
+            <input type="password" name="confirm_password" placeholder="Confirm Password" required minlength="8" pattern="[a-zA-Z0-9]+" title="Password harus terdiri dari minimal 8 karakter huruf dan angka.">
             <button type="submit">Register</button>
         </form>
         <p class="message">Sudah punya akun? <a href="login.php">Login</a></p>

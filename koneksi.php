@@ -3,7 +3,7 @@
 $host = 'localhost';
 $user = 'root';
 $password = '';
-$database = 'todo_app';
+$database = 'todolist';
 
 $conn = new mysqli ($host, $user, $password, $database);
 ?>
