@@ -51,76 +51,116 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     <title>Login</title>
     <link rel="stylesheet" href="styles.css">
     <style>
-        body {
-            font-family: Arial, sans-serif;
-            margin: 0;
-            padding: 0;
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            min-height: 100vh;
-            background: linear-gradient(to bottom, rgb(29, 32, 218), #2575fc);
-        }
+    * {
+        box-sizing: border-box;
+    }
+
+    body {
+        font-family: Arial, sans-serif;
+        margin: 0;
+        padding: 0;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        min-height: 100vh;
+        background: linear-gradient(to bottom, rgb(29, 32, 218), #2575fc);
+    }
+
+    .container {
+        max-width: 400px;
+        width: 90%;
+        background: #fff;
+        padding: 20px;
+        box-shadow: 0 4px 6px rgba(0, 164, 241, 0.5);
+        border-radius: 10px;
+    }
+
+    h2 {
+        text-align: center;
+        margin-bottom: 20px;
+    }
+
+    form {
+        display: flex;
+        flex-direction: column;
+    }
+
+    input[type="email"],
+    input[type="password"] {
+        margin-bottom: 10px;
+        padding: 12px;
+        font-size: 16px;
+        border: 1px solid #ddd;
+        border-radius: 5px;
+    }
+
+    .show-password {
+        margin-bottom: 10px;
+        display: flex;
+        align-items: center;
+        font-size: 14px;
+    }
+
+    .show-password input {
+        margin-right: 5px;
+    }
+
+    button {
+        padding: 12px;
+        font-size: 16px;
+        border: none;
+        border-radius: 5px;
+        background: linear-gradient(to bottom, rgb(29, 32, 218), #2575fc);
+        color: #fff;
+        cursor: pointer;
+        transition: background 0.3s ease;
+    }
+
+    button:hover {
+        background: linear-gradient(to bottom, #1a1dcf, #1a5cf7);
+    }
+
+    .message {
+        text-align: center;
+        margin-top: 10px;
+        font-size: 14px;
+    }
+
+    .error {
+        color: red;
+    }
+
+    .success {
+        color: green;
+    }
+
+    a {
+        color: #007bff;
+        text-decoration: none;
+    }
+
+    a:hover {
+        text-decoration: underline;
+    }
+
+    /* Responsive Design */
+    @media (max-width: 480px) {
         .container {
-            max-width: 400px;
-            width: 100%;
-            background: #fff;
-            padding: 20px;
-            box-shadow: 0 4px 6px rgb(0, 164, 241);
-            border-radius: 10px;
+            padding: 15px;
         }
-        h2 {
-            text-align: center;
-            margin-bottom: 20px;
-        }
-        form {
-            display: flex;
-            flex-direction: column;
-        }
+
         input[type="email"],
-        input[type="password"] {
-            margin-bottom: 10px;
-            padding: 10px;
-            font-size: 14px;
-            border: 1px solid #ddd;
-            border-radius: 5px;
-        }
-        .show-password {
-            margin-bottom: 10px;
-            display: flex;
-            align-items: center;
-            font-size: 14px;
-        }
-        .show-password input {
-            margin-right: 5px;
-        }
+        input[type="password"],
         button {
-            padding: 10px;
             font-size: 14px;
-            border: none;
-            border-radius: 5px;
-            background: linear-gradient(to bottom, rgb(29, 32, 218), #2575fc);
-            color: #fff;
-            cursor: pointer;
+            padding: 10px;
         }
-        .message {
-            text-align: center;
-            margin-top: 10px;
+
+        h2 {
+            font-size: 20px;
         }
-        .error {
-            color: red;
-        }
-        .success {
-            color: green;
-        }
-        a {
-            color: #007bff;
-            text-decoration: none;
-        }
-        a:hover {
-            text-decoration: underline;
-        }
-    </style>
+    }
+</style>
 </head>
 <body>
     <div class="container">

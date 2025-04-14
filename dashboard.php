@@ -104,38 +104,59 @@ if ($_SERVER["REQUEST_METHOD"] == "POST" && isset($_POST['delete_task'])) {
 <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script> <!-- SweetAlert2 -->
 <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script> <!-- jQuery -->
 <script>
-$(document).ready(function() {
-    let notificationInterval = setInterval(checkTasks, 60000); // Jalankan setiap 1 menit
+$(document).ready(function () {
+    // Minta izin notifikasi
+    if ("Notification" in window && Notification.permission !== "granted") {
+        Notification.requestPermission();
+    }
+
+    // Panggil fungsi notifikasi pertama kali saat halaman dimuat
+    checkTasks();
+
+    // Cek setiap 1 menit
+    let notificationInterval = setInterval(checkTasks, 60000);
 
     function checkTasks() {
         $.ajax({
             url: "notifikasi.php",
             type: "GET",
             dataType: "json",
-            success: function(response) {
-                if (response.length > 0) {
-                    let message = "";
-                    response.forEach(task => {
-                        message += `Tugas '<b>${task.name}</b>' akan jatuh tempo pada <b>${task.deadline}</b>.<br>`;
+            success: function (response) {
+                if (response.upcoming.length > 0) {
+                    response.upcoming.forEach(task => {
+                        showNotification("Tugas Akan Jatuh Tempo", `${task.name} (deadline: ${task.deadline})`);
                     });
+                }
 
+                if (response.overdue.length > 0) {
+                    response.overdue.forEach(task => {
+                        showNotification("Tugas TERLAMBAT!", `${task.name} (deadline: ${task.deadline})`);
+                    });
+                }
+
+                if (response.upcoming.length + response.overdue.length > 0) {
                     Swal.fire({
-                        title: "Pengingat Tenggat Waktu!",
-                        html: message,
-                        icon: "warning",
+                        title: "Notifikasi Tugas!",
+                        html: "Cek notifikasi sistem di pojok kanan atas.",
+                        icon: "info",
                         confirmButtonText: "OK"
                     });
-                } else {
-                    // Jika tidak ada tugas yang perlu diingatkan, hentikan interval
-                    clearInterval(notificationInterval);
                 }
             }
         });
     }
 
+    function showNotification(title, message) {
+        if (Notification.permission === "granted") {
+            new Notification(title, {
+                body: message,
+                icon: "https://cdn-icons-png.flaticon.com/512/786/786205.png"
+            });
+        }
+    }
+});
     // Jalankan sekali saat halaman dimuat
     checkTasks();
-});
 </script>
 
 
@@ -164,144 +185,184 @@ $(document).ready(function() {
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>To-Do List</title>
     <style>
-        body {
-            font-family: 'Poppins', sans-serif;
-            margin: 0;
-            padding: 20px;
-            background-color: #f8f9fa;
-            text-align: center;
-        }
-        
-        h1 {
-            color: #343a40;
-        }
+    body {
+        font-family: 'Poppins', sans-serif;
+        margin: 0;
+        padding: 20px;
+        background-color: #f8f9fa;
+        text-align: center;
+    }
+    
+    h1 {
+        color: #343a40;
+    }
 
-        form {
-            margin-bottom: 15px;
+    form {
+        margin-bottom: 15px;
+    }
+
+    input[type="text"] {
+        padding: 10px;
+        width: 60%;
+        border: 2px solid #ced4da;
+        border-radius: 5px;
+        font-size: 16px;
+    }
+
+    .button-container {
+        display: flex;
+        justify-content: center;
+        gap: 10px;
+        margin-bottom: 20px;
+        flex-wrap: wrap;
+    }
+
+    button {
+        padding: 10px 15px;
+        border: none;
+        border-radius: 5px;
+        background-color: #28a745;
+        color: white;
+        font-size: 16px;
+        cursor: pointer;
+        transition: 0.3s;
+    }
+
+    button:hover {
+        background-color: #218838;
+    }
+
+    table {
+        width: 100%;
+        max-width: 800px;
+        margin: 0 auto;
+        border-collapse: collapse;
+        background: white;
+        box-shadow: 0px 0px 10px rgba(0, 0, 0, 0.1);
+        border-radius: 10px;
+        overflow: hidden;
+    }
+
+    th, td {
+        padding: 12px;
+        border: 1px solid #ddd;
+        text-align: left;
+    }
+
+    th {
+        background-color: #007bff;
+        color: white;
+    }
+
+    .completed {
+        text-decoration: line-through;
+        color: gray;
+    }
+
+    .overdue { 
+        color: red; 
+        font-weight: bold; 
+    }
+
+    ul {
+        list-style-type: none;
+        padding: 0;
+    }
+
+    li {
+        background: #f8f9fa;
+        padding: 8px;
+        margin-bottom: 5px;
+        border-radius: 5px;
+        display: flex;
+        align-items: center;
+    }
+
+    li input[type="checkbox"] {
+        margin-right: 10px;
+    }
+
+    .top-bar {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding: 10px;
+        background-color: #007bff;
+        border-radius: 10px;
+        color: white;
+        flex-wrap: wrap;
+    }
+
+    .logout-btn {
+        background-color: #dc3545;
+        color: white;
+        border: none;
+        margin-top: 17px;
+        margin-right: 10px;
+        padding: 9px 12px;
+        border-radius: 5px;
+        cursor: pointer;
+    }
+
+    .logout-btn:hover {
+        background-color: #c82333;
+    }
+
+    form.inline {
+        display: inline;
+    }
+
+    .delete-btn {
+        background-color: #dc3545;
+        margin-left: 5px;
+    }
+
+    .delete-btn:hover {
+        background-color: #c82333;
+    }
+
+    /* Responsive Styles */
+    @media (max-width: 768px) {
+        .top-bar {
+            flex-direction: column;
+            align-items: flex-start;
         }
 
         input[type="text"] {
-            padding: 10px;
-            width: 60%;
-            border: 2px solid #ced4da;
-            border-radius: 5px;
-            font-size: 16px;
+            width: 100%;
+            margin-bottom: 10px;
         }
+
         .button-container {
-            display: flex;
-            justify-content: center;
-            gap: 10px;
-            margin-bottom: 20px;
+            flex-direction: column;
+            align-items: stretch;
+        }
+
+        form.inline,
+        form {
+            display: block;
+            width: 100%;
+            margin-bottom: 10px;
         }
 
         button {
-            padding: 10px 15px;
-            border: none;
-            border-radius: 5px;
-            background-color: #28a745;
-            color: white;
-            font-size: 16px;
-            cursor: pointer;
-            transition: 0.3s;
-        }
-
-        button:hover {
-            background-color: #218838;
+            width: 100%;
+            font-size: 14px;
         }
 
         table {
+            font-size: 14px;
             width: 100%;
-            max-width: 800px;
-            margin: 0 auto;
-            border-collapse: collapse;
-            background: white;
-            box-shadow: 0px 0px 10px rgba(0, 0, 0, 0.1);
-            border-radius: 10px;
-            overflow: hidden;
+            display: block;
+            overflow-x: auto;
         }
 
-        th, td {
-            padding: 12px;
-            border: 1px solid #ddd;
-            text-align: left;
-        }
-
-        th {
-            background-color: #007bff;
-            color: white;
-        }
-
-        .completed {
-            text-decoration: line-through;
-            color: gray;
-        }
-
-        .overdue { 
-            color: red; font-weight: bold; 
-        }
-
-        ul {
-            list-style-type: none;
-            padding: 0;
-        }
-        .top-bar {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            padding: 10px;
-            background-color: #007bff;
-            border-radius: 10px;
-            color: white;
-        }
         .logout-btn {
-            background-color: #dc3545;
-            color: white;
-            border: none;
-            margin-top: 17px;
-            margin-right: 10px;
-            padding: 9px 12px;
-            border-radius: 5px;
-            cursor: pointer;
+            margin-top: 10px;
+            width: 100%;
         }
-        .logout-btn:hover {
-            background-color: #c82333;
-        }
-        li {
-            background: #f8f9fa;
-            padding: 8px;
-            margin-bottom: 5px;
-            border-radius: 5px;
-            display: flex;
-            align-items: center;
-        }
-
-        li input[type="checkbox"] {
-            margin-right: 10px;
-        }
-
-        form.inline {
-            display: inline;
-        }
-
-        .delete-btn {
-            background-color: #dc3545;
-            margin-left: 5px;
-        }
-
-        .delete-btn:hover {
-            background-color: #c82333;
-        }
-
-        @media (max-width: 600px) {
-            input[type="text"] {
-                width: 80%;
-            }
-            
-            table {
-                font-size: 14px;
-            }
-        }
-    </style>
+    }
+</style>
 </head>
 <body>
 <div class="top-bar">
