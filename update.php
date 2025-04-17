@@ -147,11 +147,10 @@ if (isset($_POST['update_subtask'])) {
         <h2>Update Task</h2>
 
         <!-- Form Update Task -->
-        <form method="POST">
-            <input type="text" name="new_task_name" value="<?= htmlspecialchars($task['name']) ?>" required>
-            <button type="submit" name="update_task">Update Task</button>
-        </form>
-
+       <form method="POST" onsubmit="return confirm('Yakin ingin update task ini?')">
+    <input type="text" name="new_task_name" value="<?= htmlspecialchars($task['name']) ?>" required>
+    <button type="submit" name="update_task">Update Task</button>
+    </form> 
         <!-- Form Update Tenggat Waktu -->
 <h2>Perpanjang Tenggat Waktu</h2>
 <form method="POST">
@@ -165,7 +164,7 @@ if (isset($_POST['update_subtask'])) {
         <ul>
             <?php while ($subtask = $subtasks->fetch_assoc()): ?>
                 <li>
-                <form method="POST">
+                <form method="POST" onsubmit="return confirm('Yakin ingin update subtask ini?')">
                     <input type="hidden" name="subtask_id" value="<?= htmlspecialchars($subtask['id']) ?>">
                     <input type="text" name="new_subtask_name" value="<?= htmlspecialchars($subtask['name']) ?>" required>
                     <button type="submit" name="update_subtask">Update Subtask</button>
